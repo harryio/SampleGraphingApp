@@ -27,8 +27,9 @@ import lecho.lib.hellocharts.model.Viewport;
 import lecho.lib.hellocharts.view.LineChartView;
 
 public class MainActivity extends AppCompatActivity implements GraphingActivityInterface {
-    LineChartView mChart;
+    private static final String TAG = MainActivity.class.getSimpleName();
 
+    LineChartView mChart;
     int totalPoints, maxNumberOfPoints = 30;
     Handler handler;
     List<Line> lines = new ArrayList<>();
@@ -98,18 +99,23 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     @Override
     public void addPoint(int series_n, float x, float y) {
         final LineChartData lineChartData = mChart.getLineChartData();
-        final Line line = lineChartData.getLines().get(series_n);
-        final List<PointValue> values = line.getValues();
-        values.add(new PointValue(x, y));
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                line.setValues(new ArrayList<>(values));
-                mChart.setLineChartData(lineChartData);
-                totalPoints++;
-                setViewport();
-            }
-        });
+        try {
+            final Line line = lineChartData.getLines().get(series_n);
+            final List<PointValue> values = line.getValues();
+            values.add(new PointValue(x, y));
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    line.setValues(new ArrayList<>(values));
+                    mChart.setLineChartData(lineChartData);
+                    totalPoints++;
+                    setViewport();
+                }
+            });
+        } catch (IndexOutOfBoundsException e) {
+            e.printStackTrace();
+            Log.e(TAG, "No series found at index " + series_n);
+        }
     }
 
     @Override
@@ -117,11 +123,15 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         handler.post(new Runnable() {
             @Override
             public void run() {
-                Log.i("MainActivity", "Clear Points called");
                 LineChartData lineChartData = mChart.getLineChartData();
-                Line line = lineChartData.getLines().get(series_n);
-                line.setValues(new ArrayList<PointValue>(0));
-                mChart.setLineChartData(lineChartData);
+                try {
+                    Line line = lineChartData.getLines().get(series_n);
+                    line.setValues(new ArrayList<PointValue>(0));
+                    mChart.setLineChartData(lineChartData);
+                } catch (IndexOutOfBoundsException e) {
+                    e.printStackTrace();
+                    Log.e(TAG, "No series found at index " + series_n);
+                }
             }
         });
     }
@@ -137,7 +147,12 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
     @Override
     public void setYAxisTitle(int series_n, String title) {
-        yAxisTitles.get(series_n).setText(title);
+        try {
+            yAxisTitles.get(series_n).setText(title);
+        } catch (IndexOutOfBoundsException e) {
+            e.printStackTrace();
+            Log.e(TAG, "No series found at index " + series_n);
+        }
     }
 
     private void setViewport() {
