@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         handler.post(new Runnable() {
             @Override
             public void run() {
+                //Force chart to draw current data again
                 mChart.setLineChartData(mChart.getLineChartData());
             }
         });
@@ -74,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
     @Override
     public int addStream(final String title) {
+        //Create new line with some default values
         Line line = new Line();
         line.setHasLines(true);
         line.setHasPoints(true);
@@ -85,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                //Dynamically add legend item view into UI
                 View view = getLayoutInflater().inflate(R.layout.legend_item, legend, false);
                 legend.addView(view);
                 TextView textView = (TextView) view.findViewById(R.id.title);
@@ -93,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                 (view.findViewById(R.id.line)).setBackgroundColor(argb);
             }
         });
+        //Returns the index of newly added series
         return lines.size() - 1;
     }
 
@@ -100,12 +104,16 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     public void addPoint(int series_n, float x, float y) {
         final LineChartData lineChartData = mChart.getLineChartData();
         try {
+            //Get line to which point is to added
             final Line line = lineChartData.getLines().get(series_n);
+            //Get list of previous points on the line
             final List<PointValue> values = line.getValues();
+            //Add new point to this list
             values.add(new PointValue(x, y));
             handler.post(new Runnable() {
                 @Override
                 public void run() {
+                    //Set new data on the graph
                     line.setValues(new ArrayList<>(values));
                     mChart.setLineChartData(lineChartData);
                     totalPoints++;
@@ -125,8 +133,11 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
             public void run() {
                 LineChartData lineChartData = mChart.getLineChartData();
                 try {
+                    //Get line for which points are to be cleared
                     Line line = lineChartData.getLines().get(series_n);
+                    //Set empty list of points replacing old values list
                     line.setValues(new ArrayList<PointValue>(0));
+                    //Set new data on the graph
                     mChart.setLineChartData(lineChartData);
                 } catch (IndexOutOfBoundsException e) {
                     e.printStackTrace();
@@ -156,6 +167,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     }
 
     private void setViewport() {
+        //Automatic scroll graph to the left after point threshold is reached
         if (totalPoints > maxNumberOfPoints) {
             final Viewport viewport = new Viewport(mChart.getMaximumViewport());
             viewport.left = totalPoints - maxNumberOfPoints;
@@ -178,13 +190,16 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                 break;
 
             case R.id.action_add_stream:
+                //Start adding values from the background thread
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
                         int index = addStream("Line " + lines.size());
                         for (int i = 0; i < 10; i++) {
+                            //Add random values
                             addPoint(index, i, (float) (10 * Math.random()));
                             try {
+                                //Set update value to 1 second
                                 Thread.sleep(1000);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
@@ -195,6 +210,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                 break;
 
             case R.id.action_clear_points:
+                //Start clearing values from the background thread
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
