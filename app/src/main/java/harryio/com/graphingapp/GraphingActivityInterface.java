@@ -5,7 +5,7 @@ public interface GraphingActivityInterface {
 
     void setNPointOnScreen(int maxPoints);
 
-    int addStream();
+    int addStream(String title);
 
     void addPoint(int series_n, float x, float y);
 

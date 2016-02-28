@@ -9,7 +9,9 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     int totalPoints, maxNumberOfPoints = 30;
     Handler handler;
     List<Line> lines = new ArrayList<>();
+    List<TextView> yAxisTitles = new ArrayList<>();
     Axis xAxis;
     LinearLayout legend;
 
@@ -55,7 +58,12 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
     @Override
     public void refresh() {
-        mChart.setLineChartData(mChart.getLineChartData());
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                mChart.setLineChartData(mChart.getLineChartData());
+            }
+        });
     }
 
     @Override
@@ -64,14 +72,26 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     }
 
     @Override
-    public int addStream() {
+    public int addStream(final String title) {
         Line line = new Line();
         line.setHasLines(true);
         line.setHasPoints(true);
         Random random = new Random();
-        line.setColor(Color.argb(random.nextInt(256), random.nextInt(256),
-                random.nextInt(256), random.nextInt(256)));
+        final int argb = Color.argb(random.nextInt(256), random.nextInt(256),
+                random.nextInt(256), random.nextInt(256));
+        line.setColor(argb);
         lines.add(line);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                View view = getLayoutInflater().inflate(R.layout.legend_item, legend, false);
+                legend.addView(view);
+                TextView textView = (TextView) view.findViewById(R.id.title);
+                textView.setText(title);
+                yAxisTitles.add(textView);
+                (view.findViewById(R.id.line)).setBackgroundColor(argb);
+            }
+        });
         return lines.size() - 1;
     }
 
@@ -117,6 +137,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
     @Override
     public void setYAxisTitle(int series_n, String title) {
+        yAxisTitles.get(series_n).setText(title);
     }
 
     private void setViewport() {
@@ -145,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        int index = addStream();
+                        int index = addStream("Line " + lines.size());
                         for (int i = 0; i < 10; i++) {
                             addPoint(index, i, (float) (10 * Math.random()));
                             try {
