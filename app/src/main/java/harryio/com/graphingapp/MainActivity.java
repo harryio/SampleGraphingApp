@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         line.setHasLines(true);
         line.setHasPoints(true);
         Random random = new Random();
-        final int argb = Color.argb(random.nextInt(256), random.nextInt(256),
+        final int argb = Color.rgb(random.nextInt(256),
                 random.nextInt(256), random.nextInt(256));
         line.setColor(argb);
         lines.add(line);
@@ -109,12 +109,13 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
             //Get list of previous points on the line
             final List<PointValue> values = line.getValues();
             //Add new point to this list
-            values.add(new PointValue(x, y));
+            final ArrayList<PointValue> pointValues = new ArrayList<>(values);
+            pointValues.add(new PointValue(x, y));
+            //Set new data on the graph
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    //Set new data on the graph
-                    line.setValues(new ArrayList<>(values));
+                    line.setValues(pointValues);
                     mChart.setLineChartData(lineChartData);
                     totalPoints++;
                     setViewport();
@@ -195,12 +196,12 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                     @Override
                     public void run() {
                         int index = addStream("Line " + lines.size());
-                        for (int i = 0; i < 10; i++) {
+                        for (int i = 0; i < 100; i++) {
                             //Add random values
                             addPoint(index, i, (float) (10 * Math.random()));
                             try {
                                 //Set update value to 1 second
-                                Thread.sleep(1000);
+                                Thread.sleep(100);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
