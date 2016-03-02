@@ -36,6 +36,8 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     List<TextView> yAxisTitles = new ArrayList<>();
     Axis xAxis;
     LinearLayout legend;
+    boolean manualAxisScaling;
+    float maxX, maxY, minY;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,11 +103,11 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     }
 
     @Override
-    public void addPoint(int series_n, float x, float y) {
+    public void addPoint(int series_n, final float x, final float y) {
         final LineChartData lineChartData = mChart.getLineChartData();
         try {
-            //Get line to which point is to added
-            final Line line = lineChartData.getLines().get(series_n);
+            ArrayList<Line> lines = new ArrayList<>(lineChartData.getLines());
+            final Line line = lines.get(series_n);
             //Get list of previous points on the line
             final List<PointValue> values = line.getValues();
             //Add new point to this list
@@ -118,7 +120,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                     line.setValues(pointValues);
                     mChart.setLineChartData(lineChartData);
                     totalPoints++;
-                    setViewport();
+                    setViewport(x, y);
                 }
             });
         } catch (IndexOutOfBoundsException e) {
@@ -167,13 +169,44 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         }
     }
 
-    private void setViewport() {
-        //Automatic scroll graph to the left after point threshold is reached
-        if (totalPoints > maxNumberOfPoints) {
-            final Viewport viewport = new Viewport(mChart.getMaximumViewport());
-            viewport.left = totalPoints - maxNumberOfPoints;
-            mChart.setCurrentViewport(viewport);
+    private void setViewport(float x, float y) {
+        if (x > maxX) {
+            maxX = x;
         }
+
+        if (y > maxY) {
+            maxY = y;
+        }
+
+        if (y < minY) {
+            minY = y;
+        }
+
+        if (manualAxisScaling) {
+            mChart.setViewportCalculationEnabled(false);
+
+            Viewport currentViewport = new Viewport(mChart.getCurrentViewport());
+            currentViewport.right = maxX;
+            currentViewport.left = 0;
+
+            Viewport maximumViewport = new Viewport(mChart.getMaximumViewport());
+            maximumViewport.right = maxX;
+            maximumViewport.left = 0;
+            maximumViewport.top = maxY;
+            maximumViewport.bottom = minY;
+
+            mChart.setCurrentViewport(currentViewport);
+            mChart.setMaximumViewport(maximumViewport);
+        } else {
+            mChart.setViewportCalculationEnabled(true);
+        }
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.findItem(R.id.action_y_axis_scaling).setTitle(manualAxisScaling ? "Automatic scaling"
+                : "Manual Scaling");
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -198,7 +231,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                         int index = addStream("Line " + lines.size());
                         for (int i = 0; i < 100; i++) {
                             //Add random values
-                            addPoint(index, i, (float) (10 * Math.random()));
+                            addPoint(index, i, (float) (100 * Math.random()));
                             try {
                                 //Set update value to 1 second
                                 Thread.sleep(100);
@@ -222,6 +255,12 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                     }
                 }).start();
                 break;
+
+            case R.id.action_y_axis_scaling:
+                manualAxisScaling = !manualAxisScaling;
+                invalidateOptionsMenu();
+                break;
+
         }
         return super.onOptionsItemSelected(item);
     }
