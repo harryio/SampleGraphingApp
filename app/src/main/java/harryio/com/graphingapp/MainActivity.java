@@ -2,19 +2,16 @@ package harryio.com.graphingapp;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Random;
 
 import lecho.lib.hellocharts.gesture.ContainerScrollType;
@@ -31,11 +28,9 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
     LineChartView mChart;
     int totalPoints, maxNumberOfPoints = 30;
-    Handler handler;
     List<Line> lines = new ArrayList<>();
     List<TextView> yAxisTitles = new ArrayList<>();
     Axis xAxis;
-    LinearLayout legend;
     boolean manualAxisScaling;
     float maxX, maxY, minY;
 
@@ -44,7 +39,6 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mChart = (LineChartView) findViewById(R.id.lineChart);
-        legend = (LinearLayout) findViewById(R.id.legend);
 
         mChart.setInteractive(true);
         mChart.setZoomType(ZoomType.HORIZONTAL_AND_VERTICAL);
@@ -56,12 +50,11 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         lineChartData.setAxisYLeft(new Axis().setName("Axis Y"));
         mChart.setLineChartData(lineChartData);
 
-        handler = new Handler(Looper.getMainLooper());
     }
 
     @Override
     public void refresh() {
-        handler.post(new Runnable() {
+        runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 //Force chart to draw current data again
@@ -85,38 +78,28 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         final int argb = Color.rgb(random.nextInt(256),
                 random.nextInt(256), random.nextInt(256));
         line.setColor(argb);
+        List<Line> lines = new ArrayList<>(mChart.getLineChartData().getLines());
         lines.add(line);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                //Dynamically add legend item view into UI
-                View view = getLayoutInflater().inflate(R.layout.legend_item, legend, false);
-                legend.addView(view);
-                TextView textView = (TextView) view.findViewById(R.id.title);
-                textView.setText(title);
-                yAxisTitles.add(textView);
-                (view.findViewById(R.id.line)).setBackgroundColor(argb);
-            }
-        });
-        //Returns the index of newly added series
+        mChart.getLineChartData().setLines(lines);
         return lines.size() - 1;
     }
 
     @Override
-    public void addPoint(int series_n, final float x, final float y) {
+    public void addPoint(final int series_n, final float x, final float y) {
         final LineChartData lineChartData = mChart.getLineChartData();
         try {
-            ArrayList<Line> lines = new ArrayList<>(lineChartData.getLines());
-            final Line line = lines.get(series_n);
-            //Get list of previous points on the line
-            final List<PointValue> values = line.getValues();
-            //Add new point to this list
-            final ArrayList<PointValue> pointValues = new ArrayList<>(values);
-            pointValues.add(new PointValue(x, y));
             //Set new data on the graph
-            handler.post(new Runnable() {
+            runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    ArrayList<Line> lines = new ArrayList<>(lineChartData.getLines());
+                    final Line line = lines.get(series_n);
+                    //Get list of previous points on the line
+                    final List<PointValue> values = line.getValues();
+                    //Add new point to this list
+                    final ArrayList<PointValue> pointValues = new ArrayList<>(values);
+                    ListIterator<PointValue> listIterator = pointValues.listIterator();
+                    listIterator.add(new PointValue(x, y));
                     line.setValues(pointValues);
                     mChart.setLineChartData(lineChartData);
                     totalPoints++;
@@ -131,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
     @Override
     public void clearPoints(final int series_n) {
-        handler.post(new Runnable() {
+        runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 LineChartData lineChartData = mChart.getLineChartData();
