@@ -4,9 +4,8 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
     LineChartView mChart;
     int totalPoints, maxNumberOfPoints = 30;
-    List<Line> lines = new ArrayList<>();
     List<TextView> yAxisTitles = new ArrayList<>();
     Axis xAxis;
     boolean manualAxisScaling;
@@ -37,14 +35,65 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mChart = new LineChartView(this);
-        setContentView(mChart);
+        setContentView(R.layout.activity_main);
+        mChart = (LineChartView) findViewById(R.id.lineChart);
+        (findViewById(R.id.refresh)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                refresh();
+            }
+        });
 
+        (findViewById(R.id.add)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //Start adding values from the background thread
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        int index = addStream("Line");
+                        for (int i = 0; i < 100; i++) {
+                            //Add random values
+                            addPoint(index, i, (float) (100 * Math.random()));
+                            try {
+                                //Set update value to 1 second
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }).start();
+            }
+        });
+
+        (findViewById(R.id.clear)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //Start clearing values from the background thread
+                int size = mChart.getLineChartData().getLines().size();
+                for (int i = 0; i < size; ++i) {
+                    clearPoints(i);
+                }
+            }
+        });
+
+        final Button scalingButton = (Button) findViewById(R.id.scaling);
+        scalingButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                manualAxisScaling = !manualAxisScaling;
+                if (manualAxisScaling)
+                    scalingButton.setText("Auto Scaling");
+                else
+                    scalingButton.setText("Manual Scaling");
+            }
+        });
         mChart.setInteractive(true);
         mChart.setZoomType(ZoomType.HORIZONTAL_AND_VERTICAL);
         mChart.setContainerScrollEnabled(true, ContainerScrollType.HORIZONTAL);
 
-        LineChartData lineChartData = new LineChartData(lines);
+        LineChartData lineChartData = new LineChartData(new ArrayList<Line>());
         xAxis = new Axis().setName("Axis X");
         lineChartData.setAxisXBottom(xAxis);
         lineChartData.setAxisYLeft(new Axis().setName("Axis Y"));
@@ -183,68 +232,5 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         } else {
             mChart.setViewportCalculationEnabled(true);
         }
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        menu.findItem(R.id.action_y_axis_scaling).setTitle(manualAxisScaling ? "Automatic scaling"
-                : "Manual Scaling");
-        return super.onPrepareOptionsMenu(menu);
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater menuInflater = getMenuInflater();
-        menuInflater.inflate(R.menu.menu_activity_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_refresh:
-                refresh();
-                break;
-
-            case R.id.action_add_stream:
-                //Start adding values from the background thread
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        int index = addStream("Line " + lines.size());
-                        for (int i = 0; i < 100; i++) {
-                            //Add random values
-                            addPoint(index, i, (float) (100 * Math.random()));
-                            try {
-                                //Set update value to 1 second
-                                Thread.sleep(100);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                }).start();
-                break;
-
-            case R.id.action_clear_points:
-                //Start clearing values from the background thread
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        int size = lines.size();
-                        for (int i = 0; i < size; ++i) {
-                            clearPoints(i);
-                        }
-                    }
-                }).start();
-                break;
-
-            case R.id.action_y_axis_scaling:
-                manualAxisScaling = !manualAxisScaling;
-                invalidateOptionsMenu();
-                break;
-
-        }
-        return super.onOptionsItemSelected(item);
     }
 }
