@@ -37,8 +37,8 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        mChart = (LineChartView) findViewById(R.id.lineChart);
+        mChart = new LineChartView(this);
+        setContentView(mChart);
 
         mChart.setInteractive(true);
         mChart.setZoomType(ZoomType.HORIZONTAL_AND_VERTICAL);
