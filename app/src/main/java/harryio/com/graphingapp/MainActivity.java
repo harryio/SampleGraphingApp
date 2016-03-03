@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         //Create new line with some default values
         Line line = new Line();
         line.setHasLines(true);
-        line.setHasPoints(true);
+        line.setHasPoints(false);
         Random random = new Random();
         final int argb = Color.rgb(random.nextInt(256),
                 random.nextInt(256), random.nextInt(256));
