@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mChart = (LineChartView) findViewById(R.id.lineChart);
+
         (findViewById(R.id.refresh)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -94,9 +95,9 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         mChart.setContainerScrollEnabled(true, ContainerScrollType.HORIZONTAL);
 
         LineChartData lineChartData = new LineChartData(new ArrayList<Line>());
-        xAxis = new Axis().setName("Axis X");
+        xAxis = new Axis().setName("Axis X").setHasLines(true);
         lineChartData.setAxisXBottom(xAxis);
-        lineChartData.setAxisYLeft(new Axis().setName("Axis Y"));
+        lineChartData.setAxisYLeft(new Axis().setName("Axis Y").setHasLines(true));
         mChart.setLineChartData(lineChartData);
 
     }
