@@ -26,17 +26,20 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     private static final String TAG = MainActivity.class.getSimpleName();
 
     LineChartView mChart;
-    int totalPoints, maxNumberOfPoints = 30;
+    int maxNumberOfPoints = 1000;
+    int maxNumberOfPointsOnScreen = 32;
     List<TextView> yAxisTitles = new ArrayList<>();
     Axis xAxis;
-    boolean manualAxisScaling;
-    float maxX, maxY, minY;
+    boolean manualAxisScaling = false;
+    boolean lockedRight = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mChart = (LineChartView) findViewById(R.id.lineChart);
+        mChart.setViewportCalculationEnabled(false);
+        mChart.setMaxZoom((float) 1000.0);
 
         (findViewById(R.id.refresh)).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -53,12 +56,14 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                     @Override
                     public void run() {
                         int index = addStream("Line");
-                        for (int i = 0; i < 100; i++) {
+                        int i = 0;
+                        while(true) {
                             //Add random values
                             addPoint(index, i, (float) (100 * Math.random()));
+                            i++;
                             try {
                                 //Set update value to 1 second
-                                Thread.sleep(100);
+                                Thread.sleep(200);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -76,6 +81,13 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                 for (int i = 0; i < size; ++i) {
                     clearPoints(i);
                 }
+            }
+        });
+
+        (findViewById(R.id.lock_right)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                lockedRight = !lockedRight;
             }
         });
 
@@ -115,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
     @Override
     public void setNPointOnScreen(int maxPoints) {
-        maxNumberOfPoints = maxPoints;
+        maxNumberOfPointsOnScreen = maxPoints;
     }
 
     @Override
@@ -146,14 +158,12 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                     final Line line = lines.get(series_n);
                     //Get list of previous points on the line
                     final List<PointValue> values = line.getValues();
-                    //Add new point to this list
-                    final ArrayList<PointValue> pointValues = new ArrayList<>(values);
-                    ListIterator<PointValue> listIterator = pointValues.listIterator();
-                    listIterator.add(new PointValue(x, y));
-                    line.setValues(pointValues);
+                    values.add(new PointValue(x, y));
+                    if(values.size()>maxNumberOfPoints) {
+                        values.remove(0);
+                    }
                     mChart.setLineChartData(lineChartData);
-                    totalPoints++;
-                    setViewport(x, y);
+                    setViewport();
                 }
             });
         } catch (IndexOutOfBoundsException e) {
@@ -202,36 +212,68 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         }
     }
 
-    private void setViewport(float x, float y) {
-        if (x > maxX) {
-            maxX = x;
+    private void setViewport() {
+        Viewport maximumViewport = new Viewport();
+        Viewport currentViewport = new Viewport(mChart.getCurrentViewport());
+
+        LineChartData lineChartData = mChart.getLineChartData();
+
+        List<Line> lines = lineChartData.getLines();
+        final Line line = lines.get(0);
+        final List<PointValue> values = line.getValues();
+        final List<PointValue> pointsInView;
+
+        // Compute maximum viewport
+
+        float min = values.get(0).getY();
+        float max = values.get(0).getY();
+        for (PointValue p : values) {
+            float ty = (float) p.getY();
+            if (ty < min) {
+                min = ty;
+            }
+            if (ty > max) {
+                max = ty;
+            }
         }
+        maximumViewport.left = values.get(0).getX();
+        maximumViewport.right = values.get(values.size()-1).getX();
+        maximumViewport.top = max;
+        maximumViewport.bottom = min;
 
-        if (y > maxY) {
-            maxY = y;
-        }
+        mChart.setMaximumViewport(maximumViewport);
 
-        if (y < minY) {
-            minY = y;
-        }
+        // Grab only the most recent N points and base the current viewport off of them
 
-        if (manualAxisScaling) {
-            mChart.setViewportCalculationEnabled(false);
-
-            Viewport currentViewport = new Viewport(mChart.getCurrentViewport());
-            currentViewport.right = maxX;
-            currentViewport.left = 0;
-
-            Viewport maximumViewport = new Viewport(mChart.getMaximumViewport());
-            maximumViewport.right = maxX;
-            maximumViewport.left = 0;
-            maximumViewport.top = maxY;
-            maximumViewport.bottom = minY;
-
-            mChart.setCurrentViewport(currentViewport);
-            mChart.setMaximumViewport(maximumViewport);
+        if (values.size() >= maxNumberOfPointsOnScreen) {
+            pointsInView = values.subList(values.size() - maxNumberOfPointsOnScreen, values.size());
         } else {
-            mChart.setViewportCalculationEnabled(true);
+            pointsInView = values;
         }
+
+        if (!manualAxisScaling && lockedRight) {
+            // Figure out the max and min of the points in view
+            min = pointsInView.get(0).getY();
+            max = pointsInView.get(0).getY();
+
+            for (PointValue p : pointsInView) {
+                float ty = (float) p.getY();
+                if (ty < min) {
+                    min = ty;
+                }
+                if (ty > max) {
+                    max = ty;
+                }
+            }
+            currentViewport.top = max;
+            currentViewport.bottom = min;
+        }
+
+        if (lockedRight) {
+            currentViewport.left = pointsInView.get(0).getX();
+            currentViewport.right = pointsInView.get(pointsInView.size() - 1).getX();
+        }
+
+        mChart.setCurrentViewport(currentViewport);
     }
 }
