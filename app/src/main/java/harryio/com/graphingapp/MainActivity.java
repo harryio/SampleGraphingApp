@@ -10,9 +10,9 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Random;
 
+import lecho.lib.hellocharts.formatter.SimpleAxisValueFormatter;
 import lecho.lib.hellocharts.gesture.ContainerScrollType;
 import lecho.lib.hellocharts.gesture.ZoomType;
 import lecho.lib.hellocharts.model.Axis;
@@ -29,9 +29,13 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     int maxNumberOfPoints = 1000;
     int maxNumberOfPointsOnScreen = 32;
     List<TextView> yAxisTitles = new ArrayList<>();
-    Axis xAxis;
+    Axis xAxis, yAxisLeft, yAxisRight;
     boolean manualAxisScaling = false;
     boolean lockedRight = true;
+    //Set some initial values for the left and right axis ranges
+    int leftYMin = 0, leftYMax = 99, rightYMin = 100, rightYMax = 149;
+    //Find scale of left axis w.r.t right axis
+    float scale = (leftYMax -leftYMin) / (rightYMax - rightYMin);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,10 +60,16 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                     @Override
                     public void run() {
                         int index = addStream("Line");
+                        //Add second line to the graph which will operate in different range
+                        int index2 = addStream("Line 2");
+
                         int i = 0;
-                        while(true) {
+                        while (i < 4) {
                             //Add random values
                             addPoint(index, i, (float) (100 * Math.random()));
+                            //Add random point between the range of right axis, to the line
+                            addPoint(index2, i, (float) (new Random().nextInt(rightYMax - rightYMin)
+                                    + rightYMin));
                             i++;
                             try {
                                 //Set update value to 1 second
@@ -109,7 +119,10 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         LineChartData lineChartData = new LineChartData(new ArrayList<Line>());
         xAxis = new Axis().setName("Axis X").setHasLines(true);
         lineChartData.setAxisXBottom(xAxis);
-        lineChartData.setAxisYLeft(new Axis().setName("Axis Y").setHasLines(true));
+        yAxisLeft = new Axis().setName("Left Y").setHasLines(true);
+        yAxisRight = new Axis().setName("Right Y").setHasLines(true).setFormatter(new ValueFormatter());
+        lineChartData.setAxisYLeft(yAxisLeft);
+        lineChartData.setAxisYRight(yAxisRight);
         mChart.setLineChartData(lineChartData);
 
     }
@@ -147,8 +160,24 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     }
 
     @Override
-    public void addPoint(final int series_n, final float x, final float y) {
+    public void addPoint(final int series_n, float x, float y) {
+        final float pointX, pointY;
+
         final LineChartData lineChartData = mChart.getLineChartData();
+        if (y >= rightYMin && y <= rightYMax) {
+            //This point belongs to the line plotted against right axis
+            pointX = x;
+            //Scale y value of the point in the range of left axis
+            pointY = (y - rightYMin) * scale + leftYMin;
+
+            Log.i(TAG, "Initial Value of point: " + y);
+            Log.i(TAG, "Scaled Value of point: " + pointY);
+        } else {
+            //This point belongs to the line plotted against left axis
+            pointX = x;
+            pointY = y;
+        }
+
         try {
             //Set new data on the graph
             runOnUiThread(new Runnable() {
@@ -158,8 +187,8 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                     final Line line = lines.get(series_n);
                     //Get list of previous points on the line
                     final List<PointValue> values = line.getValues();
-                    values.add(new PointValue(x, y));
-                    if(values.size()>maxNumberOfPoints) {
+                    values.add(new PointValue(pointX, pointY));
+                    if(values.size() > maxNumberOfPoints) {
                         values.remove(0);
                     }
                     mChart.setLineChartData(lineChartData);
@@ -228,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         float min = values.get(0).getY();
         float max = values.get(0).getY();
         for (PointValue p : values) {
-            float ty = (float) p.getY();
+            float ty = p.getY();
             if (ty < min) {
                 min = ty;
             }
@@ -257,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
             max = pointsInView.get(0).getY();
 
             for (PointValue p : pointsInView) {
-                float ty = (float) p.getY();
+                float ty = p.getY();
                 if (ty < min) {
                     min = ty;
                 }
@@ -275,5 +304,36 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         }
 
         mChart.setCurrentViewport(currentViewport);
+    }
+
+    @Override
+    public void setLeftYAxisRange(int minY, int maxY) {
+        leftYMin = minY;
+        leftYMax = maxY;
+
+        //Recalculate scale
+        calculateScale();
+    }
+
+    @Override
+    public void setRightYAxisRange(int miny, int maxY) {
+        rightYMin = miny;
+        rightYMax = maxY;
+
+        //Recalculate scale
+        calculateScale();
+    }
+
+    private void calculateScale() {
+        scale = (leftYMax - leftYMin) / (rightYMax = rightYMin);
+    }
+
+    private class ValueFormatter extends SimpleAxisValueFormatter {
+        @Override
+        public int formatValueForAutoGeneratedAxis(char[] formattedValue, float value, int autoDecimalDigits) {
+            //Scale back to the original value so that it can be shown on
+            float scaledValue = (value - leftYMin) / scale + rightYMin;
+            return super.formatValueForAutoGeneratedAxis(formattedValue, scaledValue, 0);
+        }
     }
 }
