@@ -64,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                         int index2 = addStream("Line 2");
 
                         int i = 0;
-                        while (i < 4) {
+                        while (true) {
                             //Add random values
                             addPoint(index, i, (float) (100 * Math.random()));
                             //Add random point between the range of right axis, to the line
