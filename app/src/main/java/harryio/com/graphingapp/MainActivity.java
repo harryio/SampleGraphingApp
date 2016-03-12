@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     boolean manualAxisScaling = false;
     boolean lockedRight = true;
     //Set some initial values for the left and right axis ranges
-    int leftYMin = 0, leftYMax = 99, rightYMin = 100, rightYMax = 149;
+    int leftYMin = -100, leftYMax = 100, rightYMin = 90, rightYMax = 110;
     //Find scale of left axis w.r.t right axis
     float scale = (leftYMax -leftYMin) / (rightYMax - rightYMin);
 
@@ -147,6 +147,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         Line line = new Line();
         line.setHasLines(true);
         line.setHasPoints(false);
+        line.setCubic(true);
         Random random = new Random();
         final int argb = Color.rgb(random.nextInt(256),
                 random.nextInt(256), random.nextInt(256));
@@ -162,7 +163,7 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         final float pointX, pointY;
 
         final LineChartData lineChartData = mChart.getLineChartData();
-        if (y >= rightYMin && y <= rightYMax) {
+        if (series_n == 1 && y >= rightYMin && y <= rightYMax) {
             //This point belongs to the line plotted against right axis
             pointX = x;
             //Scale y value of the point in the range of left axis
