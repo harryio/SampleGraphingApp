@@ -110,9 +110,9 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
                 int i = 0;
                 while (true) {
                     //Add random values
-                    addPoint(index, i, (float) (100 *Math.sin((double)i/20)));
+                    addPoint(index, i, (float) (100 *Math.sin((double)i*2*Math.PI/20)));
                     //Add random point between the range of right axis, to the line
-                    addPoint(index2, i, (float) (10*Math.sin((double)i/10))+100);
+                    addPoint(index2, i, (float) (10*Math.sin((double)i*2*Math.PI/10))+100);
                     i++;
                     try {
                         //Set update value to 1 second
