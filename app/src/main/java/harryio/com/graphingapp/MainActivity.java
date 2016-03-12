@@ -52,37 +52,6 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
             }
         });
 
-        (findViewById(R.id.add)).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //Start adding values from the background thread
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        int index = addStream("Line");
-                        //Add second line to the graph which will operate in different range
-                        int index2 = addStream("Line 2");
-
-                        int i = 0;
-                        while (true) {
-                            //Add random values
-                            addPoint(index, i, (float) (100 * Math.random()));
-                            //Add random point between the range of right axis, to the line
-                            addPoint(index2, i, (float) (new Random().nextInt(rightYMax - rightYMin)
-                                    + rightYMin));
-                            i++;
-                            try {
-                                //Set update value to 1 second
-                                Thread.sleep(200);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                }).start();
-            }
-        });
-
         (findViewById(R.id.clear)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -125,6 +94,35 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         lineChartData.setAxisYRight(yAxisRight);
         mChart.setLineChartData(lineChartData);
 
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        //Start adding values from the background thread
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int index = addStream("Line");
+                //Add second line to the graph which will operate in different range
+                int index2 = addStream("Line 2");
+
+                int i = 0;
+                while (true) {
+                    //Add random values
+                    addPoint(index, i, (float) (100 *Math.sin((double)i*2*Math.PI/20)));
+                    //Add random point between the range of right axis, to the line
+                    addPoint(index2, i, (float) (10*Math.sin((double)i*2*Math.PI/10))+100);
+                    i++;
+                    try {
+                        //Set update value to 1 second
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
     }
 
     @Override
