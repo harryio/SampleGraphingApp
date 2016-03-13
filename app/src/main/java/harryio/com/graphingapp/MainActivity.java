@@ -33,9 +33,9 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     boolean manualAxisScaling = false;
     boolean lockedRight = true;
     //Set some initial values for the left and right axis ranges
-    int leftYMin = -100, leftYMax = 100, rightYMin = 90, rightYMax = 110;
+    float leftYMin, leftYMax, rightYMin, rightYMax;
     //Find scale of left axis w.r.t right axis
-    float scale = (leftYMax -leftYMin) / (rightYMax - rightYMin);
+    float scale;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -163,7 +163,11 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         final float pointX, pointY;
 
         final LineChartData lineChartData = mChart.getLineChartData();
-        if (series_n == 1 && y >= rightYMin && y <= rightYMax) {
+        if (series_n == 1 ) {
+            if (y > rightYMax) rightYMax = y;
+            if (y < rightYMin) rightYMin = y;
+
+            calculateScale();
             //This point belongs to the line plotted against right axis
             pointX = x;
             //Scale y value of the point in the range of left axis
@@ -172,6 +176,10 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
             Log.i(TAG, "Initial Value of point: " + y);
             Log.i(TAG, "Scaled Value of point: " + pointY);
         } else {
+            if (y > leftYMax) leftYMax = y;
+            if (y < leftYMin) leftYMin = y;
+
+            calculateScale();
             //This point belongs to the line plotted against left axis
             pointX = x;
             pointY = y;
@@ -324,7 +332,13 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     }
 
     private void calculateScale() {
-        scale = (leftYMax - leftYMin) / (rightYMax = rightYMin);
+        final float leftDiff = leftYMax - leftYMin;
+        final float rightDiff = rightYMax - rightYMin;
+        if (leftDiff != 0 && rightDiff != 0) {
+            scale = leftDiff / rightDiff;
+        }
+
+        Log.i(TAG, "Scale: " + scale);
     }
 
     private class ValueFormatter extends SimpleAxisValueFormatter {
