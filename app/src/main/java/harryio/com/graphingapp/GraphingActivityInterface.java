@@ -46,14 +46,4 @@ public interface GraphingActivityInterface {
      * Set series title
      */
     void setYAxisTitle(int series_n, String title);
-
-    /**
-     * Sets the range of Left Y Axis
-     */
-    void setLeftYAxisRange(int minY, int maxY);
-
-    /**
-     * Sets the range of Right Y Axis
-     */
-    void setRightYAxisRange(int miny, int maxY);
 }

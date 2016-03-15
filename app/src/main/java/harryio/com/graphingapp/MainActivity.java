@@ -6,7 +6,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,6 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     LineChartView mChart;
     int maxNumberOfPoints = 1000;
     int maxNumberOfPointsOnScreen = 32;
-    List<TextView> yAxisTitles = new ArrayList<>();
     Axis xAxis, yAxisLeft, yAxisRight;
     boolean manualAxisScaling = false;
     boolean lockedRight = true;
@@ -36,6 +34,9 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
     float leftYMin, leftYMax, rightYMin, rightYMax;
     //Find scale of left axis w.r.t right axis
     float scale;
+    //Create lists for storing actual value of points that are visible on the screen for both axises
+    List<Float> leftAxisValues = new ArrayList<>();
+    List<Float> rightAxisValues = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,20 +165,43 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
         final LineChartData lineChartData = mChart.getLineChartData();
         if (series_n == 1 ) {
-            if (y > rightYMax) rightYMax = y;
-            if (y < rightYMin) rightYMin = y;
+            rightAxisValues.add(y);
+            if (rightAxisValues.size() > maxNumberOfPointsOnScreen) {
+                rightAxisValues.remove(0);
+            }
+
+            Float min = rightAxisValues.get(0), max = rightAxisValues.get(0);
+            //Find maximum and minimum value from the data currently visible on the screen for the line on right y axis
+            for (Float yVal : rightAxisValues) {
+                if (yVal < min) min = yVal;
+                if (yVal > max) max = yVal;
+            }
+
+            //Reset range of right axis
+            rightYMin = min;
+            rightYMax = max;
 
             calculateScale();
             //This point belongs to the line plotted against right axis
             pointX = x;
             //Scale y value of the point in the range of left axis
             pointY = (y - rightYMin) * scale + leftYMin;
-
-            Log.i(TAG, "Initial Value of point: " + y);
-            Log.i(TAG, "Scaled Value of point: " + pointY);
         } else {
-            if (y > leftYMax) leftYMax = y;
-            if (y < leftYMin) leftYMin = y;
+            leftAxisValues.add(y);
+            if (leftAxisValues.size() > maxNumberOfPointsOnScreen) {
+                leftAxisValues.remove(0);
+            }
+
+            Float min = leftAxisValues.get(0), max = leftAxisValues.get(0);
+            //Find maximum and minimum value from the data currently visible on the screen for the line on left y axis
+            for (Float yVal : leftAxisValues) {
+                if (yVal < min) min = yVal;
+                if (yVal > max) max = yVal;
+            }
+
+            //Reset range of left axis
+            leftYMin = min;
+            leftYMax = max;
 
             calculateScale();
             //This point belongs to the line plotted against left axis
@@ -240,11 +264,10 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
 
     @Override
     public void setYAxisTitle(int series_n, String title) {
-        try {
-            yAxisTitles.get(series_n).setText(title);
-        } catch (IndexOutOfBoundsException e) {
-            e.printStackTrace();
-            Log.e(TAG, "No series found at index " + series_n);
+        if (series_n == 0) {
+            yAxisLeft.setName(title);
+        } else if(series_n == 1) {
+            yAxisRight.setName(title);
         }
     }
 
@@ -311,24 +334,6 @@ public class MainActivity extends AppCompatActivity implements GraphingActivityI
         }
 
         mChart.setCurrentViewport(currentViewport);
-    }
-
-    @Override
-    public void setLeftYAxisRange(int minY, int maxY) {
-        leftYMin = minY;
-        leftYMax = maxY;
-
-        //Recalculate scale
-        calculateScale();
-    }
-
-    @Override
-    public void setRightYAxisRange(int miny, int maxY) {
-        rightYMin = miny;
-        rightYMax = maxY;
-
-        //Recalculate scale
-        calculateScale();
     }
 
     private void calculateScale() {
